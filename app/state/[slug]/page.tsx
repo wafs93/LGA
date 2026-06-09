@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import Link from 'next/link'
 import { supabase, formatNaira, formatMonth, PARTY_COLORS, AVATAR_COLORS, getInitials } from '@/lib/supabase'
 import type { State, LGA, StateAllocation, FaacAllocation } from '@/lib/supabase'
@@ -28,18 +28,42 @@ export default function StatePage({ params }: { params: { slug: string } }) {
       setAllocations(allocData || [])
       setLgas(lgaData || [])
       setLgaAllocs(lgaAllocData || [])
-      if (allocData && allocData.length > 0) setSelectedMonth(allocData[0].allocation_month)
+
+      // Auto-select latest month that has LGA data
+      // If no LGA data, fall back to latest state allocation month
+      if (lgaAllocData && lgaAllocData.length > 0) {
+        setSelectedMonth(lgaAllocData[0].allocation_month)
+      } else if (allocData && allocData.length > 0) {
+        setSelectedMonth(allocData[0].allocation_month)
+      }
       setLoading(false)
     }
     load()
   }, [slug])
 
   const totalReceived = allocations.reduce((s, a) => s + (a.total_allocation || 0), 0)
-  const lgaMap: Record<number, LGA> = {}
-  lgas.forEach(l => { lgaMap[l.id] = l })
-  const lgaAllocsForMonth = lgaAllocs.filter(a => a.allocation_month === selectedMonth)
-    .sort((a, b) => (b.total_allocation || 0) - (a.total_allocation || 0))
-  const maxLga = Math.max(...lgaAllocsForMonth.map(a => a.total_allocation || 0), 1)
+
+  const lgaMap = useMemo(() => {
+    const m: Record<number, LGA> = {}
+    lgas.forEach(l => { m[l.id] = l })
+    return m
+  }, [lgas])
+
+  // Months that have LGA data
+  const monthsWithLga = useMemo(() => {
+    return new Set(lgaAllocs.map(a => a.allocation_month))
+  }, [lgaAllocs])
+
+  const lgaAllocsForMonth = useMemo(() => {
+    return lgaAllocs
+      .filter(a => a.allocation_month === selectedMonth)
+      .sort((a, b) => (b.total_allocation || 0) - (a.total_allocation || 0))
+  }, [lgaAllocs, selectedMonth])
+
+  const maxLga = useMemo(() =>
+    Math.max(...lgaAllocsForMonth.map(a => a.total_allocation || 0), 1),
+    [lgaAllocsForMonth]
+  )
 
   const partyClass = state ? (PARTY_COLORS[state.governor_party] || '') : ''
   const avatarColor = state ? AVATAR_COLORS[state.id % AVATAR_COLORS.length] : '#008751'
@@ -57,7 +81,7 @@ export default function StatePage({ params }: { params: { slug: string } }) {
         <Link href="/" className="nav-logo">Naija<span className="dot">Track</span></Link>
       </nav>
       <div className="container" style={{padding:'80px 24px',textAlign:'center'}}>
-        <h2 className="display" style={{fontSize:'2rem',marginBottom:12}}>State not found</h2>
+        <h2 style={{fontSize:'2rem',marginBottom:12,fontFamily:'Fraunces,serif'}}>State not found</h2>
         <Link href="/" style={{color:'var(--green)'}}>← Back to all states</Link>
       </div>
     </main>
@@ -114,6 +138,10 @@ export default function StatePage({ params }: { params: { slug: string } }) {
                   <span className="stat-card-num">{lgas.length}</span>
                   <span className="stat-card-label">LGAs</span>
                 </div>
+                <div className="stat-card">
+                  <span className="stat-card-num">{monthsWithLga.size}</span>
+                  <span className="stat-card-label">Months with LGA data</span>
+                </div>
               </div>
             </>
           )}
@@ -124,11 +152,14 @@ export default function StatePage({ params }: { params: { slug: string } }) {
         <div className="container">
           <div style={{display:'grid',gridTemplateColumns:'1fr',gap:20}}>
 
+            {/* MONTHLY TABLE */}
             <div className="data-card">
               <div className="data-card-header">
                 <div>
                   <div className="data-card-title">Monthly Allocations from FG</div>
-                  <div className="data-card-sub">{allocations.length} months · click a row to see LGA breakdown</div>
+                  <div className="data-card-sub">
+                    {allocations.length} months · click a row to load LGA breakdown below
+                  </div>
                 </div>
               </div>
               {allocations.length === 0 && !loading ? (
@@ -136,31 +167,125 @@ export default function StatePage({ params }: { params: { slug: string } }) {
               ) : (
                 <div style={{overflowX:'auto'}}>
                   <table>
-                    <thead><tr>
-                      <th>Month</th><th>Statutory</th><th>VAT</th><th>Ecology</th><th>Total</th><th>Status</th>
-                    </tr></thead>
+                    <thead>
+                      <tr>
+                        <th>Month</th>
+                        <th>Statutory</th>
+                        <th>VAT</th>
+                        <th>Ecology</th>
+                        <th>Total</th>
+                        <th>LGA Data</th>
+                        <th>Status</th>
+                      </tr>
+                    </thead>
                     <tbody>
                       {loading ? Array.from({length:5}).map((_,i) => (
-                        <tr key={i}><td colSpan={6}><div className="skeleton" style={{height:16,borderRadius:4}}/></td></tr>
-                      )) : allocations.map(a => (
-                        <tr key={a.id}
-                          onClick={() => setSelectedMonth(a.allocation_month)}
-                          style={{cursor:'pointer', background: selectedMonth === a.allocation_month ? 'rgba(0,135,81,0.04)' : undefined}}
-                        >
-                          <td className="td-primary">{formatMonth(a.allocation_month)}</td>
-                          <td className="td-muted">{formatNaira(a.federal_share)}</td>
-                          <td className="td-muted">{formatNaira(a.vat_share)}</td>
-                          <td className="td-muted">{formatNaira(a.ecology_share)}</td>
-                          <td className="td-amount">{formatNaira(a.total_allocation)}</td>
-                          <td>{a.verified ? <span className="verified-tag">✓ Verified</span> : <span className="unverified-tag">Unverified</span>}</td>
-                        </tr>
-                      ))}
+                        <tr key={i}><td colSpan={7}><div className="skeleton" style={{height:16,borderRadius:4}}/></td></tr>
+                      )) : allocations.map(a => {
+                        const isSelected = selectedMonth === a.allocation_month
+                        const hasLga = monthsWithLga.has(a.allocation_month)
+                        return (
+                          <tr
+                            key={a.id}
+                            onClick={() => setSelectedMonth(a.allocation_month)}
+                            style={{
+                              cursor: 'pointer',
+                              background: isSelected ? 'rgba(0,135,81,0.06)' : undefined,
+                              outline: isSelected ? '2px solid rgba(0,135,81,0.3)' : undefined,
+                            }}
+                          >
+                            <td className="td-primary" style={{fontWeight: isSelected ? 700 : 500}}>
+                              {isSelected && <span style={{color:'var(--green)',marginRight:6}}>▶</span>}
+                              {formatMonth(a.allocation_month)}
+                            </td>
+                            <td className="td-muted">{formatNaira(a.federal_share)}</td>
+                            <td className="td-muted">{formatNaira(a.vat_share)}</td>
+                            <td className="td-muted">{formatNaira(a.ecology_share)}</td>
+                            <td className="td-amount">{formatNaira(a.total_allocation)}</td>
+                            <td>
+                              {hasLga
+                                ? <span className="verified-tag">✓ Available</span>
+                                : <span className="unverified-tag">—</span>
+                              }
+                            </td>
+                            <td>
+                              {a.verified
+                                ? <span className="verified-tag">✓ Verified</span>
+                                : <span className="unverified-tag">Unverified</span>
+                              }
+                            </td>
+                          </tr>
+                        )
+                      })}
                     </tbody>
                   </table>
                 </div>
               )}
             </div>
 
+            {/* LGA BREAKDOWN */}
+            <div className="data-card" id="lga-breakdown">
+              <div className="data-card-header">
+                <div>
+                  <div className="data-card-title">
+                    LGA Allocations
+                    {selectedMonth && <span style={{color:'var(--green)',marginLeft:8,fontSize:13}}>— {formatMonth(selectedMonth)}</span>}
+                  </div>
+                  <div className="data-card-sub">
+                    {lgaAllocsForMonth.length > 0
+                      ? `${lgaAllocsForMonth.length} of ${lgas.length} LGAs · sorted by allocation`
+                      : 'Click a month row above — rows with ✓ LGA Data have breakdown'
+                    }
+                  </div>
+                </div>
+              </div>
+              {lgaAllocsForMonth.length === 0 ? (
+                <div className="empty-state">
+                  <h3>No LGA data for {selectedMonth ? formatMonth(selectedMonth) : 'this month'}</h3>
+                  <p>Click a month that shows <strong>✓ Available</strong> in the LGA Data column above</p>
+                </div>
+              ) : (
+                <div style={{overflowX:'auto'}}>
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>#</th>
+                        <th>LGA</th>
+                        <th>Total Allocation</th>
+                        <th>Relative Share</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {lgaAllocsForMonth.map((a, idx) => {
+                        const lga = lgaMap[a.lga_id]
+                        const pct = ((a.total_allocation || 0) / maxLga * 100)
+                        return (
+                          <tr key={a.id}>
+                            <td style={{color:'var(--text-muted)',fontSize:12,width:32}}>{idx+1}</td>
+                            <td className="td-primary">{lga?.name || `LGA #${a.lga_id}`}</td>
+                            <td className="td-amount">{formatNaira(a.total_allocation)}</td>
+                            <td style={{minWidth:140}}>
+                              <div style={{display:'flex',alignItems:'center',gap:8}}>
+                                <div style={{flex:1,height:6,background:'var(--gray-100)',borderRadius:3,overflow:'hidden'}}>
+                                  <div style={{
+                                    width:`${pct}%`,height:'100%',
+                                    background:`linear-gradient(90deg, var(--green), var(--green-light))`,
+                                    borderRadius:3,transition:'width 0.3s'
+                                  }}/>
+                                </div>
+                                <span style={{fontSize:11,color:'var(--text-muted)',width:32}}>{pct.toFixed(0)}%</span>
+                              </div>
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            {/* OFFICIALS */}
             <div className="data-card">
               <div className="data-card-header">
                 <div>
@@ -180,49 +305,6 @@ export default function StatePage({ params }: { params: { slug: string } }) {
                   </div>
                 ))}
               </div>
-            </div>
-
-            <div className="data-card">
-              <div className="data-card-header">
-                <div>
-                  <div className="data-card-title">LGA Allocations</div>
-                  <div className="data-card-sub">
-                    {selectedMonth ? formatMonth(selectedMonth) : 'Select a month above'} · {lgaAllocsForMonth.length} LGAs with data
-                  </div>
-                </div>
-              </div>
-              {lgaAllocsForMonth.length === 0 ? (
-                <div className="empty-state">
-                  <h3>No LGA data for this month</h3>
-                  <p>Click a month row above to load LGA breakdown</p>
-                </div>
-              ) : (
-                <div style={{overflowX:'auto'}}>
-                  <table>
-                    <thead><tr><th>LGA</th><th>Total Allocation</th><th>Share</th></tr></thead>
-                    <tbody>
-                      {lgaAllocsForMonth.map(a => {
-                        const lga = lgaMap[a.lga_id]
-                        const pct = ((a.total_allocation || 0) / maxLga * 100).toFixed(0)
-                        return (
-                          <tr key={a.id}>
-                            <td className="td-primary">{lga?.name || `LGA #${a.lga_id}`}</td>
-                            <td className="td-amount">{formatNaira(a.total_allocation)}</td>
-                            <td>
-                              <div style={{display:'flex',alignItems:'center',gap:8}}>
-                                <div style={{width:80,height:4,background:'var(--gray-100)',borderRadius:2,overflow:'hidden'}}>
-                                  <div style={{width:`${pct}%`,height:'100%',background:'var(--green)',borderRadius:2}}/>
-                                </div>
-                                <span style={{fontSize:11,color:'var(--text-muted)'}}>{pct}%</span>
-                              </div>
-                            </td>
-                          </tr>
-                        )
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              )}
             </div>
 
           </div>
