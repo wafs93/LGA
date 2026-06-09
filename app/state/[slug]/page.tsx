@@ -28,9 +28,6 @@ export default function StatePage({ params }: { params: { slug: string } }) {
       setAllocations(allocData || [])
       setLgas(lgaData || [])
       setLgaAllocs(lgaAllocData || [])
-
-      // Auto-select latest month that has LGA data
-      // If no LGA data, fall back to latest state allocation month
       if (lgaAllocData && lgaAllocData.length > 0) {
         setSelectedMonth(lgaAllocData[0].allocation_month)
       } else if (allocData && allocData.length > 0) {
@@ -49,7 +46,6 @@ export default function StatePage({ params }: { params: { slug: string } }) {
     return m
   }, [lgas])
 
-  // Months that have LGA data
   const monthsWithLga = useMemo(() => {
     return new Set(lgaAllocs.map(a => a.allocation_month))
   }, [lgaAllocs])
@@ -152,30 +148,21 @@ export default function StatePage({ params }: { params: { slug: string } }) {
         <div className="container">
           <div style={{display:'grid',gridTemplateColumns:'1fr',gap:20}}>
 
-            {/* MONTHLY TABLE */}
             <div className="data-card">
               <div className="data-card-header">
                 <div>
                   <div className="data-card-title">Monthly Allocations from FG</div>
-                  <div className="data-card-sub">
-                    {allocations.length} months · click a row to load LGA breakdown below
-                  </div>
+                  <div className="data-card-sub">{allocations.length} months · click a row to load LGA breakdown</div>
                 </div>
               </div>
               {allocations.length === 0 && !loading ? (
-                <div className="empty-state"><h3>No allocation data yet</h3><p>Data will appear once available</p></div>
+                <div className="empty-state"><h3>No allocation data yet</h3></div>
               ) : (
                 <div style={{overflowX:'auto'}}>
                   <table>
                     <thead>
                       <tr>
-                        <th>Month</th>
-                        <th>Statutory</th>
-                        <th>VAT</th>
-                        <th>Ecology</th>
-                        <th>Total</th>
-                        <th>LGA Data</th>
-                        <th>Status</th>
+                        <th>Month</th><th>Statutory</th><th>VAT</th><th>Ecology</th><th>Total</th><th>LGA Data</th><th>Status</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -189,9 +176,8 @@ export default function StatePage({ params }: { params: { slug: string } }) {
                             key={a.id}
                             onClick={() => setSelectedMonth(a.allocation_month)}
                             style={{
-                              cursor: 'pointer',
+                              cursor:'pointer',
                               background: isSelected ? 'rgba(0,135,81,0.06)' : undefined,
-                              outline: isSelected ? '2px solid rgba(0,135,81,0.3)' : undefined,
                             }}
                           >
                             <td className="td-primary" style={{fontWeight: isSelected ? 700 : 500}}>
@@ -202,18 +188,8 @@ export default function StatePage({ params }: { params: { slug: string } }) {
                             <td className="td-muted">{formatNaira(a.vat_share)}</td>
                             <td className="td-muted">{formatNaira(a.ecology_share)}</td>
                             <td className="td-amount">{formatNaira(a.total_allocation)}</td>
-                            <td>
-                              {hasLga
-                                ? <span className="verified-tag">✓ Available</span>
-                                : <span className="unverified-tag">—</span>
-                              }
-                            </td>
-                            <td>
-                              {a.verified
-                                ? <span className="verified-tag">✓ Verified</span>
-                                : <span className="unverified-tag">Unverified</span>
-                              }
-                            </td>
+                            <td>{hasLga ? <span className="verified-tag">✓ Available</span> : <span className="unverified-tag">—</span>}</td>
+                            <td>{a.verified ? <span className="verified-tag">✓ Verified</span> : <span className="unverified-tag">Unverified</span>}</td>
                           </tr>
                         )
                       })}
@@ -223,8 +199,7 @@ export default function StatePage({ params }: { params: { slug: string } }) {
               )}
             </div>
 
-            {/* LGA BREAKDOWN */}
-            <div className="data-card" id="lga-breakdown">
+            <div className="data-card">
               <div className="data-card-header">
                 <div>
                   <div className="data-card-title">
@@ -233,28 +208,20 @@ export default function StatePage({ params }: { params: { slug: string } }) {
                   </div>
                   <div className="data-card-sub">
                     {lgaAllocsForMonth.length > 0
-                      ? `${lgaAllocsForMonth.length} of ${lgas.length} LGAs · sorted by allocation`
-                      : 'Click a month row above — rows with ✓ LGA Data have breakdown'
-                    }
+                      ? `${lgaAllocsForMonth.length} of ${lgas.length} LGAs · sorted highest to lowest`
+                      : 'Click a month marked ✓ Available above'}
                   </div>
                 </div>
               </div>
               {lgaAllocsForMonth.length === 0 ? (
                 <div className="empty-state">
                   <h3>No LGA data for {selectedMonth ? formatMonth(selectedMonth) : 'this month'}</h3>
-                  <p>Click a month that shows <strong>✓ Available</strong> in the LGA Data column above</p>
+                  <p>Click a month that shows <strong>✓ Available</strong> in the table above</p>
                 </div>
               ) : (
                 <div style={{overflowX:'auto'}}>
                   <table>
-                    <thead>
-                      <tr>
-                        <th>#</th>
-                        <th>LGA</th>
-                        <th>Total Allocation</th>
-                        <th>Relative Share</th>
-                      </tr>
-                    </thead>
+                    <thead><tr><th>#</th><th>LGA</th><th>Total Allocation</th><th>Relative Share</th></tr></thead>
                     <tbody>
                       {lgaAllocsForMonth.map((a, idx) => {
                         const lga = lgaMap[a.lga_id]
@@ -267,11 +234,7 @@ export default function StatePage({ params }: { params: { slug: string } }) {
                             <td style={{minWidth:140}}>
                               <div style={{display:'flex',alignItems:'center',gap:8}}>
                                 <div style={{flex:1,height:6,background:'var(--gray-100)',borderRadius:3,overflow:'hidden'}}>
-                                  <div style={{
-                                    width:`${pct}%`,height:'100%',
-                                    background:`linear-gradient(90deg, var(--green), var(--green-light))`,
-                                    borderRadius:3,transition:'width 0.3s'
-                                  }}/>
+                                  <div style={{width:`${pct}%`,height:'100%',background:'linear-gradient(90deg,var(--green),var(--green-light))',borderRadius:3}}/>
                                 </div>
                                 <span style={{fontSize:11,color:'var(--text-muted)',width:32}}>{pct.toFixed(0)}%</span>
                               </div>
@@ -285,7 +248,6 @@ export default function StatePage({ params }: { params: { slug: string } }) {
               )}
             </div>
 
-            {/* OFFICIALS */}
             <div className="data-card">
               <div className="data-card-header">
                 <div>
