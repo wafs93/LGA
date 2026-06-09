@@ -1,180 +1,237 @@
-import { supabase } from '@/lib/supabase';
+'use client'
+import { useEffect, useState } from 'react'
+import Link from 'next/link'
+import { use } from 'react'
+import { supabase, formatNaira, formatMonth, PARTY_COLORS, AVATAR_COLORS, getInitials } from '@/lib/supabase'
+import type { State, LGA, StateAllocation, FaacAllocation } from '@/lib/supabase'
 
-interface StatePageProps {
-  params: { slug: string };
-  searchParams?: { month?: string };
-}
+export default function StatePage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = use(params)
+  const [state, setState] = useState<State | null>(null)
+  const [allocations, setAllocations] = useState<StateAllocation[]>([])
+  const [lgas, setLgas] = useState<LGA[]>([])
+  const [lgaAllocs, setLgaAllocs] = useState<FaacAllocation[]>([])
+  const [selectedMonth, setSelectedMonth] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [notFound, setNotFound] = useState(false)
 
-const months = [
-  { value: '2025-01', label: 'Jan 2025' },
-  { value: '2025-02', label: 'Feb 2025' },
-  { value: '2025-03', label: 'Mar 2025' },
-  { value: '2025-04', label: 'Apr 2025' },
-  { value: '2025-05', label: 'May 2025' },
-  { value: '2025-06', label: 'Jun 2025' },
-  { value: '2025-07', label: 'Jul 2025' },
-  { value: '2025-08', label: 'Aug 2025' },
-  { value: '2025-09', label: 'Sep 2025' },
-  { value: '2025-10', label: 'Oct 2025' },
-  { value: '2025-11', label: 'Nov 2025' },
-  { value: '2025-12', label: 'Dec 2025' },
-];
+  useEffect(() => {
+    async function load() {
+      setLoading(true)
+      const { data: stateData } = await supabase.from('states').select('*').eq('slug', slug).single()
+      if (!stateData) { setNotFound(true); setLoading(false); return }
+      setState(stateData)
+      const [{ data: allocData }, { data: lgaData }, { data: lgaAllocData }] = await Promise.all([
+        supabase.from('state_allocations').select('*').eq('state_id', stateData.id).gte('allocation_month','2025-01-01').order('allocation_month', { ascending: false }),
+        supabase.from('lgas').select('*').eq('state_id', stateData.id).order('name'),
+        supabase.from('faac_allocations').select('*').eq('state_id', stateData.id).gte('allocation_month','2025-01-01').order('allocation_month', { ascending: false })
+      ])
+      setAllocations(allocData || [])
+      setLgas(lgaData || [])
+      setLgaAllocs(lgaAllocData || [])
+      if (allocData && allocData.length > 0) setSelectedMonth(allocData[0].allocation_month)
+      setLoading(false)
+    }
+    load()
+  }, [slug])
 
-export default async function StatePage({ params, searchParams }: StatePageProps) {
-  let month = searchParams?.month;
+  const totalReceived = allocations.reduce((s, a) => s + (a.total_allocation || 0), 0)
+  const lgaMap: Record<number, LGA> = {}
+  lgas.forEach(l => { lgaMap[l.id] = l })
+  const lgaAllocsForMonth = lgaAllocs.filter(a => a.allocation_month === selectedMonth)
+    .sort((a, b) => (b.total_allocation || 0) - (a.total_allocation || 0))
+  const maxLga = Math.max(...lgaAllocsForMonth.map(a => a.total_allocation || 0), 1)
 
-  const { data: stateData } = await supabase
-    .from('states')
-    .select('id,name,slug,abbreviation,region, description')
-    .eq('slug', params.slug)
-    .limit(1)
-    .single();
+  const partyClass = state ? (PARTY_COLORS[state.governor_party] || '') : ''
+  const avatarColor = state ? AVATAR_COLORS[state.id % AVATAR_COLORS.length] : '#008751'
 
-  const state = stateData as any;
+  const OFFICIALS = [
+    { role: 'Governor', name: state?.governor, party: state?.governor_party, color: avatarColor },
+    { role: 'Senator (Zone A)', name: 'Data coming soon', party: '', color: '#0D4E8A' },
+    { role: 'Senator (Zone B)', name: 'Data coming soon', party: '', color: '#0D4E8A' },
+    { role: 'Senator (Zone C)', name: 'Data coming soon', party: '', color: '#0D4E8A' },
+  ]
 
-  const { data: allocations = [] } = await supabase
-    .from('state_allocations')
-    .select('month,amount')
-    .eq('state_id', state?.id)
-    .order('month', { ascending: false });
-
-  const { data: officials = [] } = await supabase
-    .from('officials')
-    .select('id,name,title,photo_url,phone,email')
-    .eq('state_id', state?.id)
-    .order('title', { ascending: true });
-
-  const { data: lgas = [] } = await supabase
-    .from('lgas')
-    .select('id,name,code,faac_allocations(month,amount)')
-    .eq('state_id', state?.id)
-    .order('name', { ascending: true });
-
-  const selectedMonth = month ?? (allocations && allocations.length ? allocations[0].month : months[11].value);
-
-  const lgaBreakdown = (lgas as any[]).map((lga) => ({
-    ...lga,
-    allocation: lga.faac_allocations?.find((item: any) => item.month === selectedMonth)?.amount ?? 0,
-  }));
+  if (notFound) return (
+    <main style={{paddingTop:64}}>
+      <div className="container" style={{padding:'80px 24px',textAlign:'center'}}>
+        <h2 className="display" style={{fontSize:'2rem',marginBottom:12}}>State not found</h2>
+        <Link href="/" style={{color:'var(--green)'}}>← Back to all states</Link>
+      </div>
+    </main>
+  )
 
   return (
-    <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-      <div className="rounded-[2rem] border border-slate-200 bg-white p-8 shadow-glow shadow-slate-200/50">
-        <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
-          <div>
-            <p className="text-sm uppercase tracking-[0.24em] text-[#C9A84C]">State detail</p>
-            <h1 className="mt-3 text-4xl font-semibold text-[#004D29] sm:text-5xl">{state?.name ?? 'State not found'}</h1>
-            <p className="mt-4 max-w-2xl text-base leading-8 text-slate-600">
-              {state?.description ?? 'Explore monthly FAAC allocations, key officials, and LGA distribution for this state.'}
-            </p>
+    <main style={{paddingTop:64}}>
+      {/* NAV */}
+      <nav className="nav">
+        <Link href="/" className="nav-logo">Naija<span className="dot">Track</span></Link>
+        <div className="nav-links">
+          <Link href="/" className="nav-link">← All States</Link>
+        </div>
+      </nav>
+
+      {/* STATE HERO */}
+      <div className="state-hero">
+        <div className="state-hero-grid"/>
+        <div className="container" style={{position:'relative',zIndex:1}}>
+          <div className="breadcrumb">
+            <Link href="/">Home</Link> / <Link href="/">States</Link> / {state?.name}
           </div>
-          <div className="rounded-3xl bg-[#004D29] p-6 text-white shadow-xl shadow-[#004D29]/15">
-            <p className="text-sm uppercase tracking-[0.24em] text-[#C9A84C]/90">State overview</p>
-            <div className="mt-5 space-y-4">
-              <div className="rounded-3xl bg-[#0b3c29]/80 p-5">
-                <p className="text-xs uppercase tracking-[0.28em] text-slate-300">Region</p>
-                <p className="mt-2 text-xl font-semibold">{state?.region ?? 'Unknown'}</p>
+          {loading ? (
+            <>
+              <div className="skeleton" style={{height:40,width:300,marginBottom:12,borderRadius:8}}/>
+              <div className="skeleton" style={{height:16,width:220,borderRadius:6}}/>
+            </>
+          ) : (
+            <>
+              <div style={{display:'flex',alignItems:'center',gap:16,marginBottom:8,flexWrap:'wrap'}}>
+                <div style={{
+                  width:56,height:56,borderRadius:'50%',background:avatarColor,
+                  display:'flex',alignItems:'center',justifyContent:'center',
+                  color:'white',fontFamily:'Fraunces,serif',fontWeight:600,fontSize:18
+                }}>{state?.governor ? getInitials(state.governor) : '?'}</div>
+                <div>
+                  <h1 className="state-page-title">{state?.name} State</h1>
+                  <div className="state-page-meta">
+                    {state?.governor && <span>Gov. {state.governor}</span>}
+                    {state?.governor_party && <span className={`party-pill ${partyClass}`} style={{marginLeft:8}}>{state.governor_party}</span>}
+                    {state?.capital && <span style={{marginLeft:12}}>Capital: {state.capital}</span>}
+                    {state?.geopolitical_zone && <span style={{marginLeft:12}}>{state.geopolitical_zone}</span>}
+                  </div>
+                </div>
               </div>
-              <div className="rounded-3xl bg-[#0b3c29]/80 p-5">
-                <p className="text-xs uppercase tracking-[0.28em] text-slate-300">Selected month</p>
-                <p className="mt-2 text-xl font-semibold">{months.find((item) => item.value === selectedMonth)?.label}</p>
+              <div className="stat-cards">
+                <div className="stat-card">
+                  <span className="stat-card-num">{formatNaira(totalReceived)}</span>
+                  <span className="stat-card-label">Total 2025–present</span>
+                </div>
+                <div className="stat-card">
+                  <span className="stat-card-num">{allocations.length}</span>
+                  <span className="stat-card-label">Months on record</span>
+                </div>
+                <div className="stat-card">
+                  <span className="stat-card-num">{lgas.length}</span>
+                  <span className="stat-card-label">LGAs</span>
+                </div>
               </div>
-            </div>
-          </div>
+            </>
+          )}
         </div>
       </div>
 
-      <div className="mt-10 grid gap-6 xl:grid-cols-[1.4fr_0.8fr]">
-        <div className="space-y-6">
-          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <p className="text-sm uppercase tracking-[0.24em] text-[#004D29]">Monthly allocations</p>
-                <h2 className="mt-2 text-2xl font-semibold text-slate-900">Allocation timeline</h2>
-              </div>
-              <div className="rounded-2xl bg-slate-100 px-4 py-2 text-sm text-slate-700">Latest {allocations?.length ?? 0} months</div>
-            </div>
-            <div className="mt-6 overflow-x-auto">
-              <table className="min-w-full text-left text-sm text-slate-700">
-                <thead>
-                  <tr>
-                    <th className="border-b border-slate-200 px-4 py-3">Month</th>
-                    <th className="border-b border-slate-200 px-4 py-3">Amount</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(allocations as any[]).map((item) => (
-                    <tr key={item.month} className="odd:bg-slate-50">
-                      <td className="border-b border-slate-200 px-4 py-4">{item.month}</td>
-                      <td className="border-b border-slate-200 px-4 py-4 font-semibold text-[#004D29]">{item.amount ? `₦${Number(item.amount).toLocaleString()}` : 'N/A'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
+      {/* CONTENT */}
+      <section className="section">
+        <div className="container">
+          <div style={{display:'grid',gridTemplateColumns:'1fr',gap:20}}>
 
-          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <p className="text-sm uppercase tracking-[0.24em] text-[#004D29]">LGA breakdown</p>
-                <h2 className="mt-2 text-2xl font-semibold text-slate-900">Allocation by LGA</h2>
+            {/* MONTHLY TABLE */}
+            <div className="data-card">
+              <div className="data-card-header">
+                <div>
+                  <div className="data-card-title">Monthly Allocations from FG</div>
+                  <div className="data-card-sub">{allocations.length} months · click row to see LGA breakdown</div>
+                </div>
               </div>
-              <span className="rounded-2xl bg-[#C9A84C]/10 px-4 py-2 text-sm font-medium text-[#4f642c]">Month: {months.find((item) => item.value === selectedMonth)?.label}</span>
-            </div>
-            <div className="mt-6 grid gap-4 sm:grid-cols-2">
-              {lgaBreakdown.length > 0 ? (
-                lgaBreakdown.map((lga) => (
-                  <div key={lga.id} className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
-                    <p className="text-sm font-semibold text-slate-900">{lga.name}</p>
-                    <p className="mt-2 text-sm text-slate-600">Code: {lga.code ?? 'N/A'}</p>
-                    <p className="mt-3 text-lg font-semibold text-[#004D29]">{lga.allocation ? `₦${Number(lga.allocation).toLocaleString()}` : 'No allocation'}</p>
-                  </div>
-                ))
+              {allocations.length === 0 && !loading ? (
+                <div className="empty-state"><h3>No allocation data yet</h3><p>Data will appear once the scraper runs for this state</p></div>
               ) : (
-                <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center text-slate-600">
-                  No LGA allocation breakdown available for this state.
+                <div style={{overflowX:'auto'}}>
+                  <table>
+                    <thead><tr>
+                      <th>Month</th><th>Statutory</th><th>VAT</th><th>Ecology</th><th>Total</th><th>Status</th>
+                    </tr></thead>
+                    <tbody>
+                      {loading ? Array.from({length:5}).map((_,i) => (
+                        <tr key={i}><td colSpan={6}><div className="skeleton" style={{height:16,borderRadius:4}}/></td></tr>
+                      )) : allocations.map(a => (
+                        <tr key={a.id}
+                          onClick={() => setSelectedMonth(a.allocation_month)}
+                          style={{cursor:'pointer', background: selectedMonth === a.allocation_month ? 'rgba(0,135,81,0.04)' : undefined}}
+                        >
+                          <td className="td-primary">{formatMonth(a.allocation_month)}</td>
+                          <td className="td-muted">{formatNaira(a.federal_share)}</td>
+                          <td className="td-muted">{formatNaira(a.vat_share)}</td>
+                          <td className="td-muted">{formatNaira(a.ecology_share)}</td>
+                          <td className="td-amount">{formatNaira(a.total_allocation)}</td>
+                          <td>{a.verified ? <span className="verified-tag">✓ Verified</span> : <span className="unverified-tag">Unverified</span>}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               )}
             </div>
-          </div>
-        </div>
 
-        <aside className="space-y-6">
-          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <p className="text-sm uppercase tracking-[0.24em] text-[#004D29]">State officials</p>
-            <div className="mt-6 space-y-4">
-              {(officials as any[]).length > 0 ? (
-                (officials as any[]).map((official) => (
-                  <div key={official.id} className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
-                    <div className="flex items-center gap-4">
-                      <div className="h-12 w-12 overflow-hidden rounded-2xl bg-slate-200">
-                        {official.photo_url ? <img src={official.photo_url} alt={official.name} className="h-full w-full object-cover" /> : null}
-                      </div>
-                      <div>
-                        <p className="font-semibold text-slate-900">{official.name}</p>
-                        <p className="text-sm text-slate-600">{official.title}</p>
-                      </div>
+            {/* OFFICIALS */}
+            <div className="data-card">
+              <div className="data-card-header">
+                <div>
+                  <div className="data-card-title">Who Represents {state?.name}</div>
+                  <div className="data-card-sub">Elected officials — officials data being populated</div>
+                </div>
+              </div>
+              <div className="officials-grid">
+                {OFFICIALS.map((o,i) => (
+                  <div key={i} className="official-card">
+                    <div className="official-avatar" style={{background: o.color}}>
+                      {o.name && o.name !== 'Data coming soon' ? getInitials(o.name) : '?'}
                     </div>
-                    <div className="mt-3 space-y-1 text-sm text-slate-600">
-                      {official.email ? <p>Email: {official.email}</p> : null}
-                      {official.phone ? <p>Phone: {official.phone}</p> : null}
-                    </div>
+                    <div className="official-name">{o.name || '—'}</div>
+                    <div className="official-role">{o.role}</div>
+                    {o.party && <span className={`party-pill ${PARTY_COLORS[o.party]||''}`}>{o.party}</span>}
                   </div>
-                ))
+                ))}
+              </div>
+            </div>
+
+            {/* LGA BREAKDOWN */}
+            <div className="data-card">
+              <div className="data-card-header">
+                <div>
+                  <div className="data-card-title">LGA Allocations</div>
+                  <div className="data-card-sub">
+                    {selectedMonth ? formatMonth(selectedMonth) : 'Select a month above'} · {lgaAllocsForMonth.length} LGAs
+                  </div>
+                </div>
+              </div>
+              {lgaAllocsForMonth.length === 0 ? (
+                <div className="empty-state">
+                  <h3>No LGA data for this month</h3>
+                  <p>LGA-level data may not be available for all months yet</p>
+                </div>
               ) : (
-                <p className="text-sm leading-7 text-slate-600">No public official records are available for this state.</p>
+                <div style={{overflowX:'auto'}}>
+                  <table>
+                    <thead><tr><th>LGA</th><th>Total Allocation</th><th>Share</th></tr></thead>
+                    <tbody>
+                      {lgaAllocsForMonth.map(a => {
+                        const lga = lgaMap[a.lga_id]
+                        const pct = ((a.total_allocation || 0) / maxLga * 100).toFixed(0)
+                        return (
+                          <tr key={a.id}>
+                            <td className="td-primary">{lga?.name || `LGA #${a.lga_id}`}</td>
+                            <td className="td-amount">{formatNaira(a.total_allocation)}</td>
+                            <td>
+                              <div style={{display:'flex',alignItems:'center',gap:8}}>
+                                <div style={{width:80,height:4,background:'var(--gray-100)',borderRadius:2,overflow:'hidden'}}>
+                                  <div style={{width:`${pct}%`,height:'100%',background:'var(--green)',borderRadius:2}}/>
+                                </div>
+                                <span style={{fontSize:11,color:'var(--text-muted)'}}>{pct}%</span>
+                              </div>
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
               )}
             </div>
+
           </div>
-          <div className="rounded-3xl border border-slate-200 bg-[#F1FAF4] p-6 text-slate-800 shadow-sm">
-            <h2 className="text-lg font-semibold text-[#004D29]">How to use</h2>
-            <p className="mt-3 text-sm leading-7">
-              This page helps you compare monthly state funding with officials and local government area data for stronger transparency and civic monitoring.
-            </p>
-          </div>
-        </aside>
-      </div>
-    </section>
-  );
+        </div>
+      </section>
+    </main>
+  )
 }

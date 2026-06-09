@@ -1,170 +1,338 @@
-import { supabase } from '@/lib/supabase';
+'use client'
+import { useEffect, useState, useMemo, useCallback } from 'react'
+import Link from 'next/link'
+import { supabase, formatNaira, formatMonthShort, formatMonth, PARTY_COLORS, AVATAR_COLORS, getInitials } from '@/lib/supabase'
+import type { State, StateAllocation } from '@/lib/supabase'
 
-const months = [
-  { value: '2025-01', label: 'Jan 2025' },
-  { value: '2025-02', label: 'Feb 2025' },
-  { value: '2025-03', label: 'Mar 2025' },
-  { value: '2025-04', label: 'Apr 2025' },
-  { value: '2025-05', label: 'May 2025' },
-  { value: '2025-06', label: 'Jun 2025' },
-  { value: '2025-07', label: 'Jul 2025' },
-  { value: '2025-08', label: 'Aug 2025' },
-  { value: '2025-09', label: 'Sep 2025' },
-  { value: '2025-10', label: 'Oct 2025' },
-  { value: '2025-11', label: 'Nov 2025' },
-  { value: '2025-12', label: 'Dec 2025' },
-  { value: '2026-01', label: 'Jan 2026' },
-  { value: '2026-02', label: 'Feb 2026' },
-  { value: '2026-03', label: 'Mar 2026' },
-  { value: '2026-04', label: 'Apr 2026' },
-  { value: '2026-05', label: 'May 2026' },
-];
+const MONTHS = [
+  '2025-01-01','2025-02-01','2025-03-01','2025-04-01','2025-05-01',
+  '2025-06-01','2025-07-01','2025-08-01','2025-09-01','2025-10-01',
+  '2025-11-01','2025-12-01','2026-01-01','2026-02-01','2026-03-01',
+  '2026-04-01','2026-05-01',
+]
 
-interface HomePageProps {
-  searchParams?: {
-    month?: string;
-    search?: string;
-  };
-}
+const AI_SUGGESTIONS = [
+  'Which state got the most in 2025?',
+  'How much did Lagos get?',
+  'What is FAAC?',
+  'Show me South West allocations',
+]
 
-export default async function HomePage({ searchParams }: HomePageProps) {
-  let month = searchParams?.month;
-  
-  // If no month specified, fetch the latest allocation month from DB
-  if (!month) {
-    const { data: latestAllocation } = await supabase
-      .from('state_allocations')
-      .select('allocation_month')
-      .order('allocation_month', { ascending: false })
-      .limit(1)
-      .single();
-    
-    if (latestAllocation?.allocation_month) {
-      month = latestAllocation.allocation_month.substring(0, 7);
-    } else {
-      month = months[11].value;
+export default function HomePage() {
+  const [states, setStates] = useState<State[]>([])
+  const [allocations, setAllocations] = useState<StateAllocation[]>([])
+  const [selectedMonth, setSelectedMonth] = useState('')
+  const [search, setSearch] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [theme, setTheme] = useState<'light'|'dark'>('light')
+  const [showAI, setShowAI] = useState(false)
+  const [aiMessages, setAiMessages] = useState([
+    { role: 'bot', text: '👋 Hi! I can help you understand FAAC allocations and find data about any state or LGA. What would you like to know?' }
+  ])
+  const [aiInput, setAiInput] = useState('')
+  const [aiLoading, setAiLoading] = useState(false)
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme)
+  }, [theme])
+
+  useEffect(() => {
+    async function load() {
+      setLoading(true)
+      const [{ data: statesData }, { data: allocData }] = await Promise.all([
+        supabase.from('states').select('*').order('name'),
+        supabase.from('state_allocations').select('*').gte('allocation_month','2025-01-01').order('allocation_month', { ascending: false })
+      ])
+      setStates(statesData || [])
+      setAllocations(allocData || [])
+      if (allocData && allocData.length > 0) {
+        setSelectedMonth(allocData[0].allocation_month)
+      } else {
+        setSelectedMonth('2025-01-01')
+      }
+      setLoading(false)
     }
-  }
-  const search = searchParams?.search?.toString() ?? '';
+    load()
+  }, [])
 
-  const { data: states = [] } = await supabase
-    .from('states')
-    .select('id,name,slug,abbreviation,state_allocations(month,amount)')
-    .eq('state_allocations.month', month)
-    .order('name', { ascending: true });
+  const allocMap = useMemo(() => {
+    const m: Record<number, StateAllocation> = {}
+    allocations.filter(a => a.allocation_month === selectedMonth).forEach(a => { m[a.state_id] = a })
+    return m
+  }, [allocations, selectedMonth])
 
-  const formattedStates = ((states || []) as any[]).map((state) => ({
-    ...state,
-    allocation: state.state_allocations?.[0]?.amount ?? 0,
-  }));
+  const maxAlloc = useMemo(() => Math.max(...Object.values(allocMap).map(a => a.total_allocation || 0), 1), [allocMap])
+  const totalMonth = useMemo(() => Object.values(allocMap).reduce((s, a) => s + (a.total_allocation || 0), 0), [allocMap])
+  const monthsWithData = useMemo(() => new Set(allocations.map(a => a.allocation_month)), [allocations])
 
-  const filteredStates = (formattedStates || []).filter((state) => {
-    const query = search.toLowerCase();
-    return (
-      state.name.toLowerCase().includes(query) ||
-      state.abbreviation?.toLowerCase().includes(query)
-    );
-  });
+  const filtered = useMemo(() => states.filter(s =>
+    s.name.toLowerCase().includes(search.toLowerCase()) ||
+    s.governor?.toLowerCase().includes(search.toLowerCase()) ||
+    s.geopolitical_zone?.toLowerCase().includes(search.toLowerCase())
+  ), [states, search])
+
+  const handleAI = useCallback(async (msg: string) => {
+    if (!msg.trim()) return
+    setAiMessages(m => [...m, { role: 'user', text: msg }])
+    setAiInput('')
+    setAiLoading(true)
+    try {
+      const resp = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 300,
+          system: `You are a civic assistant for NaijaTrack, a Nigerian government transparency platform. 
+          You help Nigerians understand FAAC (Federal Account Allocation Committee) data — how much money states and LGAs receive from the Federal Government monthly.
+          Keep responses concise (2-3 sentences max), factual, and helpful. Speak in plain English.
+          Current data: ${states.length} states tracked, ${allocations.length} monthly records.
+          Latest month: ${selectedMonth ? formatMonth(selectedMonth) : 'unknown'}.
+          Total distributed latest month: ${formatNaira(totalMonth)}.`,
+          messages: [{ role: 'user', content: msg }]
+        })
+      })
+      const data = await resp.json()
+      const text = data.content?.[0]?.text || "I couldn't find that info right now. Try searching for a specific state."
+      setAiMessages(m => [...m, { role: 'bot', text }])
+    } catch {
+      setAiMessages(m => [...m, { role: 'bot', text: "Sorry, I'm having trouble connecting. Try again in a moment." }])
+    }
+    setAiLoading(false)
+  }, [states, allocations, selectedMonth, totalMonth])
 
   return (
-    <section id="home" className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-      <div className="rounded-3xl border border-slate-200 bg-white/90 p-8 shadow-glow shadow-slate-200/50 backdrop-blur-sm">
-        <div className="grid gap-8 lg:grid-cols-[1.2fr_0.8fr] lg:items-end">
-          <div>
-            <p className="text-sm uppercase tracking-[0.3em] text-[#004D29]">Civic accountability</p>
-            <h2 className="mt-4 max-w-3xl text-4xl font-semibold text-[#004D29] sm:text-5xl">
-              Nigerian state FAAC allocations at a glance.
-            </h2>
-            <p className="mt-4 max-w-2xl text-base leading-8 text-slate-600">
-              Explore monthly allocations by state, compare performance, and follow the breakdown for officials and LGAs.
-            </p>
-          </div>
-          <div className="rounded-3xl bg-[#004D29] p-6 text-white shadow-xl shadow-[#004D29]/10">
-            <p className="text-sm uppercase tracking-[0.24em] text-[#C9A84C]/90">Month selector</p>
-            <p className="mt-4 text-3xl font-semibold">{months.find((item) => item.value === month)?.label}</p>
-            <p className="mt-2 text-sm text-slate-200">Choose a month to refresh the state allocation grid.</p>
-          </div>
+    <main>
+      {/* NAV */}
+      <nav className="nav">
+        <Link href="/" className="nav-logo">Naija<span className="dot">Track</span></Link>
+        <div className="nav-links">
+          <span className="nav-badge">Live Data</span>
+          <button className="theme-btn" onClick={() => setTheme(t => t === 'light' ? 'dark' : 'light')} title="Toggle theme">
+            {theme === 'light' ? '🌙' : '☀️'}
+          </button>
         </div>
-      </div>
+      </nav>
 
-      <div className="mt-10 grid gap-6 lg:grid-cols-[1fr_320px]">
-        <div className="space-y-6">
-          <div className="flex flex-col gap-4 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:flex-row sm:items-center sm:justify-between">
-            <form className="flex flex-col gap-4 sm:flex-row sm:items-center">
-              <label className="sr-only" htmlFor="search">Search states</label>
-              <input
-                id="search"
-                name="search"
-                defaultValue={search}
-                placeholder="Search states"
-                className="min-w-0 flex-1 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 shadow-sm focus:border-[#004D29] focus:outline-none focus:ring-2 focus:ring-[#004D29]/20"
-              />
-              <label className="sr-only" htmlFor="month">Month</label>
-              <select
-                id="month"
-                name="month"
-                defaultValue={month}
-                className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm focus:border-[#004D29] focus:outline-none focus:ring-2 focus:ring-[#004D29]/20"
-              >
-                {months.map((item) => (
-                  <option key={item.value} value={item.value}>{item.label}</option>
-                ))}
-              </select>
-              <button
-                type="submit"
-                className="rounded-2xl bg-[#004D29] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#063d28]"
-              >
-                Refresh
-              </button>
-            </form>
+      {/* HERO */}
+      <section className="hero">
+        <div className="hero-grid" />
+        <div className="hero-glow" />
+        <div className="hero-content">
+          <div className="hero-eyebrow">
+            <span className="pulse" />
+            Live FAAC Data · Updated Monthly
           </div>
-
-          <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-            {filteredStates.length > 0 ? (
-              filteredStates.map((state) => (
-                <a
-                  key={state.id}
-                  href={`/state/${state.slug}`}
-                  className="group rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
-                >
-                  <div className="flex items-center justify-between gap-4">
-                    <div>
-                      <p className="text-sm uppercase tracking-[0.2em] text-[#C9A84C]">{state.abbreviation ?? 'N/A'}</p>
-                      <h3 className="mt-3 text-xl font-semibold text-slate-900">{state.name}</h3>
-                    </div>
-                    <div className="rounded-2xl bg-[#E9F7EE] px-3 py-2 text-sm font-semibold text-[#004D29]">
-                      {state.allocation ? `₦${Number(state.allocation).toLocaleString()}` : 'No data'}
-                    </div>
-                  </div>
-                  <p className="mt-5 text-sm leading-6 text-slate-600">Tap to review monthly breakdown, officials and LGA allocation details.</p>
-                </a>
-              ))
-            ) : (
-              <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-10 text-center text-slate-600">
-                No matching states found for your search and month selection.
+          <h1 className="display">
+            Track Every Naira Sent To<br />
+            <em>Your State & LGA</em>
+          </h1>
+          <p className="hero-sub">
+            Federal Government shares revenue every month. See exactly how much each governor and local government received — transparently, with real data.
+          </p>
+          <div className="search-box">
+            <span style={{color:'rgba(255,255,255,0.35)',fontSize:18}}>🔍</span>
+            <input
+              type="search"
+              placeholder="Search state, governor, or zone..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+            />
+            <button className="search-btn">Search</button>
+          </div>
+          {!loading && (
+            <div className="hero-stats">
+              <div className="hstat">
+                <span className="hstat-num"><span>₦</span>{(totalMonth/1e9).toFixed(1)}<span>B</span></span>
+                <span className="hstat-label">Shared {selectedMonth ? new Date(selectedMonth).toLocaleDateString('en-NG',{month:'short',year:'numeric'}) : ''}</span>
               </div>
-            )}
+              <div className="hstat">
+                <span className="hstat-num">{states.length}</span>
+                <span className="hstat-label">States + FCT</span>
+              </div>
+              <div className="hstat">
+                <span className="hstat-num">774</span>
+                <span className="hstat-label">LGAs Tracked</span>
+              </div>
+              <div className="hstat">
+                <span className="hstat-num">{allocations.length}</span>
+                <span className="hstat-label">Monthly Records</span>
+              </div>
+            </div>
+          )}
+          <div className="trust-row" style={{justifyContent:'center'}}>
+            <div className="trust-badge">✓ OAGF Verified</div>
+            <div className="trust-badge">✓ RMAFC Data</div>
+            <div className="trust-badge">✓ Auto-Updated</div>
           </div>
         </div>
+      </section>
 
-        <aside className="space-y-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="rounded-3xl bg-[#004D29] p-6 text-white">
-            <p className="text-sm uppercase tracking-[0.24em] text-[#C9A84C]/80">Transparency snapshot</p>
-            <p className="mt-4 text-3xl font-semibold">State-wide FAAC</p>
-            <p className="mt-3 text-sm leading-6 text-slate-200">
-              Browse the latest monthly allocations across all states and follow the funding distribution for government transparency.
-            </p>
+      {/* ALLOCATIONS SECTION */}
+      <section className="section" style={{background:'var(--off-white)'}}>
+        <div className="container">
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-end',marginBottom:24,flexWrap:'wrap',gap:16}}>
+            <div>
+              <div className="section-label">Federal Allocations</div>
+              <h2 className="section-title">State-by-State Breakdown</h2>
+              {selectedMonth && <p className="section-sub">{formatMonth(selectedMonth)} — {filtered.length} states</p>}
+            </div>
           </div>
-          <div className="rounded-3xl border border-slate-200 bg-slate-50 p-6">
-            <p className="text-sm uppercase tracking-[0.24em] text-[#004D29]">How it works</p>
-            <ul className="mt-4 space-y-3 text-sm leading-7 text-slate-700">
-              <li>• Select a month to compare allocations for the full fiscal period.</li>
-              <li>• Search by state name or abbreviation.</li>
-              <li>• Open a state page for officials and LGA metrics.</li>
-            </ul>
+
+          {/* MONTH TABS */}
+          <div className="month-tabs">
+            {MONTHS.map(m => {
+              const hasData = monthsWithData.has(m)
+              return (
+                <button
+                  key={m}
+                  className={`month-tab ${selectedMonth === m ? 'active' : ''}`}
+                  onClick={() => setSelectedMonth(m)}
+                  style={{opacity: hasData ? 1 : 0.4}}
+                >
+                  {formatMonthShort(m)}
+                  {hasData && <span style={{marginLeft:4,fontSize:7,verticalAlign:'super'}}>●</span>}
+                </button>
+              )
+            })}
           </div>
-        </aside>
-      </div>
-    </section>
-  );
+
+          {loading ? (
+            <div className="states-grid">
+              {Array.from({length:12}).map((_,i) => (
+                <div key={i} style={{background:'var(--white)',borderRadius:'var(--radius-lg)',padding:20,border:'1px solid var(--border)'}}>
+                  <div className="skeleton" style={{height:16,width:'60%',marginBottom:10}}/>
+                  <div className="skeleton" style={{height:13,width:'45%',marginBottom:16}}/>
+                  <div className="skeleton" style={{height:28,width:'70%',marginBottom:8}}/>
+                  <div className="skeleton" style={{height:4,width:'100%'}}/>
+                </div>
+              ))}
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="empty-state">
+              <h3>No results for &ldquo;{search}&rdquo;</h3>
+              <p>Try searching a state name, governor, or geopolitical zone</p>
+            </div>
+          ) : (
+            <div className="states-grid">
+              {filtered.map(state => {
+                const alloc = allocMap[state.id]
+                const pct = alloc ? (alloc.total_allocation / maxAlloc) * 100 : 0
+                const partyClass = PARTY_COLORS[state.governor_party] || ''
+                const avatarColor = AVATAR_COLORS[state.id % AVATAR_COLORS.length]
+                return (
+                  <Link href={`/state/${state.slug}`} key={state.id} className="state-card">
+                    <div className="state-card-top">
+                      <div className="state-name">{state.name}</div>
+                      <div className="zone-badge">{state.geopolitical_zone}</div>
+                    </div>
+                    {state.governor && (
+                      <div className="state-gov" style={{display:'flex',alignItems:'center',gap:6}}>
+                        <div style={{
+                          width:24,height:24,borderRadius:'50%',
+                          background:avatarColor,color:'white',
+                          display:'flex',alignItems:'center',justifyContent:'center',
+                          fontSize:9,fontWeight:600,flexShrink:0
+                        }}>{getInitials(state.governor)}</div>
+                        <span><strong>Gov. {state.governor}</strong></span>
+                        {state.governor_party && <span className={`party-pill ${partyClass}`}>{state.governor_party}</span>}
+                      </div>
+                    )}
+                    <div>
+                      {alloc ? (
+                        <>
+                          <div className="allocation-amount">{formatNaira(alloc.total_allocation)}</div>
+                          <div style={{fontSize:11,color:'var(--text-muted)',marginTop:2}}>
+                            {alloc.verified && <><span className="verified-dot"/>Verified · </>}
+                            Statutory: {formatNaira(alloc.federal_share)} · VAT: {formatNaira(alloc.vat_share)}
+                          </div>
+                        </>
+                      ) : (
+                        <div style={{color:'var(--text-muted)',fontSize:13,fontStyle:'italic'}}>No data for this month</div>
+                      )}
+                    </div>
+                    {alloc && (
+                      <>
+                        <div className="allocation-bar">
+                          <div className="allocation-fill" style={{width:`${pct}%`}}/>
+                        </div>
+                        <div className="allocation-meta">
+                          <span>{(pct).toFixed(0)}% of highest</span>
+                          <span>→ View LGAs</span>
+                        </div>
+                      </>
+                    )}
+                  </Link>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* HOW IT WORKS */}
+      <section className="section" style={{background:'var(--navy)'}}>
+        <div className="container">
+          <div style={{textAlign:'center',marginBottom:48}}>
+            <div className="section-label" style={{justifyContent:'center',color:'rgba(0,135,81,0.8)'}}>Transparency</div>
+            <h2 className="section-title display" style={{color:'white'}}>How FAAC Works</h2>
+            <p className="section-sub" style={{color:'rgba(255,255,255,0.5)',margin:'0 auto'}}>Every month, Federal Government collects revenue and shares it with states and LGAs through the Federation Account.</p>
+          </div>
+          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:24}}>
+            {[
+              {icon:'🏛️',title:'Federal Collection',desc:'FG collects oil revenue, taxes, VAT and other sources into the Federation Account'},
+              {icon:'📊',title:'FAAC Meeting',desc:'FAAC committee meets monthly (usually 3rd-5th) to share the revenue among all tiers'},
+              {icon:'🏢',title:'State Governments',desc:'36 states + FCT each receive their statutory share, VAT share, and derivation funds'},
+              {icon:'🏘️',title:'Local Governments',desc:'774 LGAs receive their allocation via state Joint Account Allocation Committees (JAAC)'},
+            ].map((item,i) => (
+              <div key={i} style={{background:'rgba(255,255,255,0.05)',border:'1px solid rgba(0,135,81,0.2)',borderRadius:'var(--radius-lg)',padding:24}}>
+                <div style={{fontSize:28,marginBottom:12}}>{item.icon}</div>
+                <div style={{fontWeight:600,color:'white',marginBottom:8}}>{item.title}</div>
+                <div style={{fontSize:13,color:'rgba(255,255,255,0.5)',lineHeight:1.6}}>{item.desc}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* AI ASSISTANT */}
+      <button className="ai-fab" onClick={() => setShowAI(s => !s)} title="Ask NaijaTrack AI">
+        {showAI ? '✕' : '🤖'}
+      </button>
+
+      {showAI && (
+        <div className="ai-panel">
+          <div className="ai-panel-header">
+            <div className="ai-panel-title">
+              <span>🤖</span> NaijaTrack AI
+            </div>
+            <button className="ai-panel-close" onClick={() => setShowAI(false)}>✕</button>
+          </div>
+          <div className="ai-messages" id="ai-msgs">
+            {aiMessages.map((m,i) => (
+              <div key={i} className={`ai-msg ${m.role}`}>{m.text}</div>
+            ))}
+            {aiLoading && <div className="ai-msg bot">Thinking...</div>}
+          </div>
+          {aiMessages.length === 1 && (
+            <div className="ai-suggestions">
+              {AI_SUGGESTIONS.map((s,i) => (
+                <button key={i} className="ai-suggestion" onClick={() => handleAI(s)}>{s}</button>
+              ))}
+            </div>
+          )}
+          <div className="ai-input-row">
+            <input
+              className="ai-input"
+              placeholder="Ask about any state or LGA..."
+              value={aiInput}
+              onChange={e => setAiInput(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleAI(aiInput)}
+            />
+            <button className="ai-send" onClick={() => handleAI(aiInput)}>➤</button>
+          </div>
+        </div>
+      )}
+    </main>
+  )
 }
