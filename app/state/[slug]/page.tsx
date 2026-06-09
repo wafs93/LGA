@@ -1,12 +1,11 @@
 'use client'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { use } from 'react'
 import { supabase, formatNaira, formatMonth, PARTY_COLORS, AVATAR_COLORS, getInitials } from '@/lib/supabase'
 import type { State, LGA, StateAllocation, FaacAllocation } from '@/lib/supabase'
 
-export default function StatePage({ params }: { params: Promise<{ slug: string }> }) {
-  const { slug } = use(params)
+export default function StatePage({ params }: { params: { slug: string } }) {
+  const slug = params.slug
   const [state, setState] = useState<State | null>(null)
   const [allocations, setAllocations] = useState<StateAllocation[]>([])
   const [lgas, setLgas] = useState<LGA[]>([])
@@ -54,6 +53,9 @@ export default function StatePage({ params }: { params: Promise<{ slug: string }
 
   if (notFound) return (
     <main style={{paddingTop:64}}>
+      <nav className="nav">
+        <Link href="/" className="nav-logo">Naija<span className="dot">Track</span></Link>
+      </nav>
       <div className="container" style={{padding:'80px 24px',textAlign:'center'}}>
         <h2 className="display" style={{fontSize:'2rem',marginBottom:12}}>State not found</h2>
         <Link href="/" style={{color:'var(--green)'}}>← Back to all states</Link>
@@ -63,7 +65,6 @@ export default function StatePage({ params }: { params: Promise<{ slug: string }
 
   return (
     <main style={{paddingTop:64}}>
-      {/* NAV */}
       <nav className="nav">
         <Link href="/" className="nav-logo">Naija<span className="dot">Track</span></Link>
         <div className="nav-links">
@@ -71,7 +72,6 @@ export default function StatePage({ params }: { params: Promise<{ slug: string }
         </div>
       </nav>
 
-      {/* STATE HERO */}
       <div className="state-hero">
         <div className="state-hero-grid"/>
         <div className="container" style={{position:'relative',zIndex:1}}>
@@ -120,21 +120,19 @@ export default function StatePage({ params }: { params: Promise<{ slug: string }
         </div>
       </div>
 
-      {/* CONTENT */}
       <section className="section">
         <div className="container">
           <div style={{display:'grid',gridTemplateColumns:'1fr',gap:20}}>
 
-            {/* MONTHLY TABLE */}
             <div className="data-card">
               <div className="data-card-header">
                 <div>
                   <div className="data-card-title">Monthly Allocations from FG</div>
-                  <div className="data-card-sub">{allocations.length} months · click row to see LGA breakdown</div>
+                  <div className="data-card-sub">{allocations.length} months · click a row to see LGA breakdown</div>
                 </div>
               </div>
               {allocations.length === 0 && !loading ? (
-                <div className="empty-state"><h3>No allocation data yet</h3><p>Data will appear once the scraper runs for this state</p></div>
+                <div className="empty-state"><h3>No allocation data yet</h3><p>Data will appear once available</p></div>
               ) : (
                 <div style={{overflowX:'auto'}}>
                   <table>
@@ -163,12 +161,11 @@ export default function StatePage({ params }: { params: Promise<{ slug: string }
               )}
             </div>
 
-            {/* OFFICIALS */}
             <div className="data-card">
               <div className="data-card-header">
                 <div>
                   <div className="data-card-title">Who Represents {state?.name}</div>
-                  <div className="data-card-sub">Elected officials — officials data being populated</div>
+                  <div className="data-card-sub">Elected officials — senator &amp; rep data being populated</div>
                 </div>
               </div>
               <div className="officials-grid">
@@ -185,20 +182,19 @@ export default function StatePage({ params }: { params: Promise<{ slug: string }
               </div>
             </div>
 
-            {/* LGA BREAKDOWN */}
             <div className="data-card">
               <div className="data-card-header">
                 <div>
                   <div className="data-card-title">LGA Allocations</div>
                   <div className="data-card-sub">
-                    {selectedMonth ? formatMonth(selectedMonth) : 'Select a month above'} · {lgaAllocsForMonth.length} LGAs
+                    {selectedMonth ? formatMonth(selectedMonth) : 'Select a month above'} · {lgaAllocsForMonth.length} LGAs with data
                   </div>
                 </div>
               </div>
               {lgaAllocsForMonth.length === 0 ? (
                 <div className="empty-state">
                   <h3>No LGA data for this month</h3>
-                  <p>LGA-level data may not be available for all months yet</p>
+                  <p>Click a month row above to load LGA breakdown</p>
                 </div>
               ) : (
                 <div style={{overflowX:'auto'}}>
