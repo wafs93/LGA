@@ -27,9 +27,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               </div>
               <nav className="flex items-center gap-4 text-sm font-medium text-slate-700">
                 <a href="#home" className="transition hover:text-[#004D29]">Home</a>
-                <a href="/admin" className="rounded-full border border-[#C9A84C] px-4 py-2 text-[#004D29] transition hover:bg-[#C9A84C]/10">
-                  Admin
-                </a>
               </nav>
             </div>
           </header>

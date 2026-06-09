@@ -1,18 +1,23 @@
 import { supabase } from '@/lib/supabase';
 
 const months = [
+  { value: '2025-01', label: 'Jan 2025' },
+  { value: '2025-02', label: 'Feb 2025' },
+  { value: '2025-03', label: 'Mar 2025' },
+  { value: '2025-04', label: 'Apr 2025' },
+  { value: '2025-05', label: 'May 2025' },
+  { value: '2025-06', label: 'Jun 2025' },
+  { value: '2025-07', label: 'Jul 2025' },
+  { value: '2025-08', label: 'Aug 2025' },
+  { value: '2025-09', label: 'Sep 2025' },
+  { value: '2025-10', label: 'Oct 2025' },
+  { value: '2025-11', label: 'Nov 2025' },
+  { value: '2025-12', label: 'Dec 2025' },
   { value: '2026-01', label: 'Jan 2026' },
   { value: '2026-02', label: 'Feb 2026' },
   { value: '2026-03', label: 'Mar 2026' },
   { value: '2026-04', label: 'Apr 2026' },
   { value: '2026-05', label: 'May 2026' },
-  { value: '2026-06', label: 'Jun 2026' },
-  { value: '2026-07', label: 'Jul 2026' },
-  { value: '2026-08', label: 'Aug 2026' },
-  { value: '2026-09', label: 'Sep 2026' },
-  { value: '2026-10', label: 'Oct 2026' },
-  { value: '2026-11', label: 'Nov 2026' },
-  { value: '2026-12', label: 'Dec 2026' },
 ];
 
 interface HomePageProps {
@@ -23,7 +28,23 @@ interface HomePageProps {
 }
 
 export default async function HomePage({ searchParams }: HomePageProps) {
-  const month = searchParams?.month ?? months[5].value;
+  let month = searchParams?.month;
+  
+  // If no month specified, fetch the latest allocation month from DB
+  if (!month) {
+    const { data: latestAllocation } = await supabase
+      .from('state_allocations')
+      .select('allocation_month')
+      .order('allocation_month', { ascending: false })
+      .limit(1)
+      .single();
+    
+    if (latestAllocation?.allocation_month) {
+      month = latestAllocation.allocation_month.substring(0, 7);
+    } else {
+      month = months[11].value;
+    }
+  }
   const search = searchParams?.search?.toString() ?? '';
 
   const { data: states = [] } = await supabase
