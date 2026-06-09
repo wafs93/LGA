@@ -32,12 +32,12 @@ export default async function HomePage({ searchParams }: HomePageProps) {
     .eq('state_allocations.month', month)
     .order('name', { ascending: true });
 
-  const formattedStates = (states as any[]).map((state) => ({
+  const formattedStates = ((states || []) as any[]).map((state) => ({
     ...state,
     allocation: state.state_allocations?.[0]?.amount ?? 0,
   }));
 
-  const filteredStates = formattedStates.filter((state) => {
+  const filteredStates = (formattedStates || []).filter((state) => {
     const query = search.toLowerCase();
     return (
       state.name.toLowerCase().includes(query) ||
