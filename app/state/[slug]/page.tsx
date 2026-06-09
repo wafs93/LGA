@@ -6,22 +6,22 @@ interface StatePageProps {
 }
 
 const months = [
-  { value: '2026-01', label: 'Jan 2026' },
-  { value: '2026-02', label: 'Feb 2026' },
-  { value: '2026-03', label: 'Mar 2026' },
-  { value: '2026-04', label: 'Apr 2026' },
-  { value: '2026-05', label: 'May 2026' },
-  { value: '2026-06', label: 'Jun 2026' },
-  { value: '2026-07', label: 'Jul 2026' },
-  { value: '2026-08', label: 'Aug 2026' },
-  { value: '2026-09', label: 'Sep 2026' },
-  { value: '2026-10', label: 'Oct 2026' },
-  { value: '2026-11', label: 'Nov 2026' },
-  { value: '2026-12', label: 'Dec 2026' },
+  { value: '2025-01', label: 'Jan 2025' },
+  { value: '2025-02', label: 'Feb 2025' },
+  { value: '2025-03', label: 'Mar 2025' },
+  { value: '2025-04', label: 'Apr 2025' },
+  { value: '2025-05', label: 'May 2025' },
+  { value: '2025-06', label: 'Jun 2025' },
+  { value: '2025-07', label: 'Jul 2025' },
+  { value: '2025-08', label: 'Aug 2025' },
+  { value: '2025-09', label: 'Sep 2025' },
+  { value: '2025-10', label: 'Oct 2025' },
+  { value: '2025-11', label: 'Nov 2025' },
+  { value: '2025-12', label: 'Dec 2025' },
 ];
 
 export default async function StatePage({ params, searchParams }: StatePageProps) {
-  const month = searchParams?.month ?? months[5].value;
+  let month = searchParams?.month;
 
   const { data: stateData } = await supabase
     .from('states')
@@ -50,9 +50,11 @@ export default async function StatePage({ params, searchParams }: StatePageProps
     .eq('state_id', state?.id)
     .order('name', { ascending: true });
 
+  const selectedMonth = month ?? (allocations && allocations.length ? allocations[0].month : months[11].value);
+
   const lgaBreakdown = (lgas as any[]).map((lga) => ({
     ...lga,
-    allocation: lga.faac_allocations?.find((item: any) => item.month === month)?.amount ?? 0,
+    allocation: lga.faac_allocations?.find((item: any) => item.month === selectedMonth)?.amount ?? 0,
   }));
 
   return (
@@ -75,7 +77,7 @@ export default async function StatePage({ params, searchParams }: StatePageProps
               </div>
               <div className="rounded-3xl bg-[#0b3c29]/80 p-5">
                 <p className="text-xs uppercase tracking-[0.28em] text-slate-300">Selected month</p>
-                <p className="mt-2 text-xl font-semibold">{months.find((item) => item.value === month)?.label}</p>
+                <p className="mt-2 text-xl font-semibold">{months.find((item) => item.value === selectedMonth)?.label}</p>
               </div>
             </div>
           </div>
@@ -118,7 +120,7 @@ export default async function StatePage({ params, searchParams }: StatePageProps
                 <p className="text-sm uppercase tracking-[0.24em] text-[#004D29]">LGA breakdown</p>
                 <h2 className="mt-2 text-2xl font-semibold text-slate-900">Allocation by LGA</h2>
               </div>
-              <span className="rounded-2xl bg-[#C9A84C]/10 px-4 py-2 text-sm font-medium text-[#4f642c]">Month: {months.find((item) => item.value === month)?.label}</span>
+              <span className="rounded-2xl bg-[#C9A84C]/10 px-4 py-2 text-sm font-medium text-[#4f642c]">Month: {months.find((item) => item.value === selectedMonth)?.label}</span>
             </div>
             <div className="mt-6 grid gap-4 sm:grid-cols-2">
               {lgaBreakdown.length > 0 ? (

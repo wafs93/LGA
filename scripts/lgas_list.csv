@@ -1,0 +1,452 @@
+state,lga
+Abia State,Aba North
+Abia State,Aba South
+Abia State,Arochukwu
+Abia State,Bende
+Abia State,Ikwuano
+Abia State,Isiala Ngwa North
+Abia State,Isiala Ngwa South
+Abia State,Isuikwuato
+Abia State,Obi Ngwa
+Abia State,Ohafia
+Abia State,Osisioma Ngwa
+Abia State,Ugwunagbo
+Abia State,Ukwa East
+Abia State,Ukwa West
+Abia State,Umuahia North
+Abia State,Umuahia South
+Abia State,Umu Nneochi
+Adamawa State,Demsa
+Adamawa State,Fufure
+Adamawa State,Ganye
+Adamawa State,Guyuk
+Adamawa State,Girei
+Adamawa State,Gombi
+Adamawa State,Hong
+Adamawa State,Jada
+Adamawa State,Lamurde
+Adamawa State,Madagali
+Adamawa State,Maiha
+Adamawa State,Mayo Belwa
+Adamawa State,Michika
+Adamawa State,Mubi North
+Adamawa State,Mubi South
+Adamawa State,Numan
+Adamawa State,Shelleng
+Adamawa State,Song
+Adamawa State,Toungo
+Adamawa State,Yola North
+Adamawa State,Yola South
+Akwa Ibom State,Abak
+Akwa Ibom State,Eastern Obolo
+Akwa Ibom State,Eket
+Akwa Ibom State,Esit Eket
+Akwa Ibom State,Essien Udim
+Akwa Ibom State,Etim Ekpo
+Akwa Ibom State,Etinan
+Akwa Ibom State,Ibeno
+Akwa Ibom State,Ibesikpo Asutan
+Akwa Ibom State,Ibiono-Ibom
+Akwa Ibom State,Ika
+Akwa Ibom State,Ikono
+Akwa Ibom State,Ikot Abasi (village)
+Akwa Ibom State,Ikot Ekpene
+Akwa Ibom State,Ini
+Akwa Ibom State,Itu
+Akwa Ibom State,Mbo
+Akwa Ibom State,Mkpat-Enin
+Akwa Ibom State,Nsit-Atai
+Akwa Ibom State,Nsit-Ibom
+Akwa Ibom State,Nsit-Ubium
+Akwa Ibom State,Obot Akara
+Akwa Ibom State,Okobo
+Akwa Ibom State,Onna
+Akwa Ibom State,Oron
+Akwa Ibom State,Oruk Anam
+Akwa Ibom State,Udung-Uko
+Akwa Ibom State,Ukanafun
+Akwa Ibom State,Uruan
+Akwa Ibom State,Urue-Offong/Oruko
+Akwa Ibom State,Uyo
+Cross River State,Abi
+Cross River State,Akamkpa
+Cross River State,Akpabuyo
+Cross River State,Bakassi
+Cross River State,Bekwarra
+Cross River State,Biase
+Cross River State,Boki
+Cross River State,Calabar Municipal
+Cross River State,Calabar South
+Cross River State,Etung
+Cross River State,Ikom
+Cross River State,Obanliku
+Cross River State,Obubra
+Cross River State,Obudu
+Cross River State,Odukpani
+Cross River State,Ogoja
+Cross River State,Yakurr
+Cross River State,Yala
+Delta State,Aniocha North
+Delta State,Aniocha South
+Delta State,Bomadi
+Delta State,Burutu
+Delta State,Ethiope East
+Delta State,Ethiope West
+Delta State,Ika North East
+Delta State,Ika South
+Delta State,Isoko North
+Delta State,Isoko South
+Delta State,Ndokwa East
+Delta State,Ndokwa West
+Delta State,Okpe
+Delta State,Oshimili North
+Delta State,Oshimili South
+Delta State,Patani
+Delta State,Sapele
+Delta State,Udu
+Delta State,Ughelli North
+Delta State,Ughelli South
+Delta State,Ukwuani
+Delta State,Uvwie
+Delta State,Warri North
+Delta State,Warri South
+Delta State,Warri South West
+Ebonyi State,Abakaliki
+Ebonyi State,Afikpo
+Ebonyi State,Edda
+Ebonyi State,Ebonyi
+Ebonyi State,Ezza North
+Ebonyi State,Ezza South
+Ebonyi State,Ikwo
+Ebonyi State,Ishielu
+Ebonyi State,Ivo
+Ebonyi State,Izzi
+Ebonyi State,Ohaozara
+Ebonyi State,Ohaukwu
+Ebonyi State,Onicha
+Edo State,Akoko-Edo
+Edo State,Egor
+Edo State,Esan Central
+Edo State,Esan North-East
+Edo State,Esan South-East
+Edo State,Esan West
+Edo State,Etsako Central
+Edo State,Etsako East
+Edo State,Etsako West
+Edo State,Igueben
+Edo State,Ikpoba Okha
+Edo State,Orhionmwon
+Edo State,Oredo
+Edo State,Ovia North-East
+Edo State,Ovia South-West
+Edo State,Owan East
+Edo State,Owan West
+Edo State,Uhunmwonde
+Kano State,Ajingi
+Kano State,Albasu
+Kano State,Bagwai
+Kano State,Bebeji
+Kano State,Bichi
+Kano State,Bunkure
+Kano State,Dala
+Kano State,Dambatta
+Kano State,Dawakin Kudu
+Kano State,Dawakin Tofa
+Kano State,Doguwa
+Kano State,Fagge
+Kano State,Gabasawa
+Kano State,Garko
+Kano State,Garun Mallam
+Kano State,Gaya
+Kano State,Gezawa
+Kano State,Gwale
+Kano State,Gwarzo
+Kano State,Kabo
+Kano State,Kano Municipal
+Kano State,Karaye
+Kano State,Kibiya
+Kano State,Kiru
+Kano State,Kumbotso
+Kano State,Ghari
+Kano State,Kura
+Kano State,Madobi
+Kano State,Makoda
+Kano State,Minjibir
+Kano State,Nasarawa
+Kano State,Rano
+Kano State,Rimin Gado
+Kano State,Rogo
+Kano State,Shanono
+Kano State,Sumaila
+Kano State,Takai
+Kano State,Tarauni
+Kano State,Tofa
+Kano State,Tsanyawa
+Kano State,Tudun Wada
+Kano State,Ungogo
+Kano State,Warawa
+Kano State,Wudil
+Katsina State,Bakori
+Katsina State,Batagarawa
+Katsina State,Batsari
+Katsina State,Baure
+Katsina State,Bindawa
+Katsina State,Charanchi
+Katsina State,Dandume
+Katsina State,Danja
+Katsina State,Dan Musa
+Katsina State,Daura
+Katsina State,Dutsi
+Katsina State,Dutsin Ma
+Katsina State,Faskari
+Katsina State,Funtua
+Katsina State,Ingawa
+Katsina State,Jibia
+Katsina State,Kafur
+Katsina State,Kaita
+Katsina State,Kankara
+Katsina State,Kankia
+Katsina State,Katsina
+Katsina State,Kurfi
+Katsina State,Kusada
+Katsina State,Mai'Adua
+Katsina State,Malumfashi
+Katsina State,Mani
+Katsina State,Mashi
+Katsina State,Matazu
+Katsina State,Musawa
+Katsina State,Rimi
+Katsina State,Sabuwa
+Katsina State,Safana
+Katsina State,Sandamu
+Katsina State,Zango
+Kebbi State,Aleiro
+Kebbi State,Arewa-Dandi
+Kebbi State,Argungu
+Kebbi State,Augie
+Kebbi State,Bagudo
+Kebbi State,Birnin Kebbi
+Kebbi State,Bunza
+Kebbi State,Dandi
+Kebbi State,Fakai
+Kebbi State,Gwandu
+Kebbi State,Jega
+Kebbi State,Kalgo
+Kebbi State,Koko/Besse
+Kebbi State,Maiyama
+Kebbi State,Ngaski
+Kebbi State,Sakaba
+Kebbi State,Shanga
+Kebbi State,Suru
+Kebbi State,Wasagu/Danko
+Kebbi State,Yauri
+Kebbi State,Zuru
+Kogi State,Adavi
+Kogi State,Ajaokuta
+Kogi State,Ankpa
+Kogi State,Bassa
+Kogi State,Dekina
+Kogi State,Ibaji
+Kogi State,Idah
+Kogi State,Igalamela-Odolu
+Kogi State,Kabba/Bunu
+Kogi State,Mopa-Muro
+Kogi State,Ijumu
+Kogi State,Yagba West
+Kogi State,Yagba East
+Kogi State,Ofu
+Kogi State,Okene
+Kogi State,Okehi
+Kogi State,Lokoja
+Kogi State,Ogori/Mangongo
+Kogi State,Olamaboro
+Kogi State,Omala
+Kogi State,Kogi
+Kwara State,Ekiti
+Kwara State,Ifelodun
+Kwara State,Ilorin East
+Kwara State,Ilorin West
+Kwara State,Irepodun
+Kwara State,Isin
+Kwara State,Kaiama
+Kwara State,Moro
+Kwara State,Offa
+Kwara State,Oke Ero
+Kwara State,Oyun
+Kwara State,Pategi
+Kwara State,Baruten
+Kwara State,Asa
+Kwara State,Edu
+Kwara State,Ilorin South
+Lagos State,Agege
+Lagos State,Ajeromi-Ifelodun
+Lagos State,Alimosho
+Lagos State,Amuwo-Odofin
+Lagos State,Apapa
+Lagos State,Badagry
+Lagos State,Epe
+Lagos State,Eti Osa
+Lagos State,Ibeju-Lekki
+Lagos State,Ifako-Ijaiye
+Lagos State,Ikeja
+Lagos State,Ikorodu
+Lagos State,Kosofe
+Lagos State,Lagos Island
+Lagos State,Lagos Mainland
+Lagos State,Mushin
+Lagos State,Ojo
+Lagos State,Oshodi-Isolo
+Lagos State,Shomolu
+Lagos State,Surulere
+Nasarawa State,Akwanga
+Nasarawa State,Awe
+Nasarawa State,Doma
+Nasarawa State,Karu
+Nasarawa State,Lafia
+Nasarawa State,keana
+Nasarawa State,Obi
+Nasarawa State,Kokona
+Nasarawa State,Keffi
+Nasarawa State,Nasarawa
+Nasarawa State,Nasarawa Eggon
+Nasarawa State,Wamba
+Nasarawa State,Toto
+Niger State,Agaie
+Niger State,Agwara
+Niger State,Bida
+Niger State,Borgu
+Niger State,Bosso
+Niger State,Chanchaga
+Niger State,Edati
+Niger State,Gbako
+Niger State,Gurara
+Niger State,Katcha
+Niger State,Kontagora
+Niger State,Lapai
+Niger State,Lavun
+Niger State,Magama
+Niger State,Mariga
+Niger State,Mashegu
+Niger State,Mokwa
+Niger State,Munya
+Niger State,Paikoro
+Niger State,Rafi
+Niger State,Rijau
+Niger State,Shiroro
+Niger State,Suleja
+Niger State,Tafa
+Niger State,Wushishi
+Ogun State,Abeokuta North
+Ogun State,Abeokuta South
+Ogun State,Ado-Odo/Ota
+Ogun State,Ewekoro
+Ogun State,Ifo
+Ogun State,Ijebu North
+Ogun State,Ijebu North East
+Ogun State,Ijebu Ode
+Ogun State,Ijebu East
+Ogun State,Ilishan-Remo
+Ogun State,Ikenne
+Ogun State,Imeko Afon
+Ogun State,Ipokia
+Ogun State,Obafemi Owode
+Ogun State,Odeda
+Ogun State,Odogbolu
+Ogun State,Ogun Waterside
+Ogun State,Remo North
+Ogun State,Shagamu
+Ogun State,Yewa North
+Ogun State,Yewa South
+Ogun State,Isara
+Ondo State,Akoko North-East
+Ondo State,Akoko North-West
+Ondo State,Akoko South-East
+Ondo State,Akoko South-West
+Ondo State,Akure North
+Ondo State,Akure South
+Ondo State,Ese Odo
+Ondo State,Ifedore
+Ondo State,Idanre
+Ondo State,Ilaje
+Ondo State,Ile-Oluji/Okeigbo
+Ondo State,Irele
+Ondo State,Odigbo
+Ondo State,Okitipupa
+Ondo State,Ondo West
+Ondo State,Ondo East
+Ondo State,Ose
+Ondo State,Owo
+Sokoto State,Binji
+Sokoto State,Bodinga
+Sokoto State,Dange Shuni
+Sokoto State,Gada
+Sokoto State,Sokoto South
+Sokoto State,Sokoto North
+Sokoto State,Gwadabawa
+Sokoto State,Wamakko
+Sokoto State,Tangaza
+Sokoto State,Bodinga
+Sokoto State,Sabon Birni
+Sokoto State,Isah
+Sokoto State,Rabah
+Sokoto State,Silame
+Sokoto State,Wurno
+Sokoto State,Goronyo
+Sokoto State,Illela
+Sokoto State,Gudu
+Sokoto State,Tureta
+Sokoto State,Tambuwal
+Sokoto State,Kware
+Taraba State,Ardo Kola
+Taraba State,Bali
+Taraba State,Donga
+Taraba State,Gashaka
+Taraba State,Gassol
+Taraba State,Ibi
+Taraba State,Jalingo
+Taraba State,Karim Lamido
+Taraba State,Kurmi
+Taraba State,Lau
+Taraba State,Sardauna
+Taraba State,Takum
+Taraba State,Ussa
+Taraba State,Wukari
+Taraba State,Yorro
+Taraba State,Zing
+Yobe State,Bade
+Yobe State,Bursari
+Yobe State,Damaturu
+Yobe State,Fika
+Yobe State,Fune
+Yobe State,Geidam
+Yobe State,Gujba
+Yobe State,Gulani
+Yobe State,Jakusko
+Yobe State,Karasuwa
+Yobe State,Machina
+Yobe State,Nangere
+Yobe State,Nguru
+Yobe State,Potiskum
+Yobe State,Tarmuwa
+Yobe State,Yunusari
+Yobe State,Yusufari
+Zamfara State,Anka
+Zamfara State,Bakuka
+Zamfara State,Birnin Magaji/Kiyaw
+Zamfara State,Bukkuyum
+Zamfara State,Bungudu
+Zamfara State,Tsafe
+Zamfara State,Gummi
+Zamfara State,Gusau
+Zamfara State,Kaura-Namoda
+Zamfara State,Maradun
+Zamfara State,Maru
+Zamfara State,Shinkafi
+Zamfara State,Talata-Mafara
+Zamfara State,Zurmi
+Federal Capital Territory,Abaji
+Federal Capital Territory,Abuja Municipal Area Council
+Federal Capital Territory,Kwali
+Federal Capital Territory,Kuje
+Federal Capital Territory,Bwari
+Federal Capital Territory,Gwagwalada
